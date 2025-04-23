@@ -4,6 +4,16 @@ import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "url";
+import http from "http";
+
+const PORT = process.env.PORT || 3000;
+
+http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Bot is running.\n");
+}).listen(PORT, () => {
+  console.log(`Dummy server is listening on port ${PORT}`);
+});
 
 // ESM用 __dirname 互換
 const __filename = fileURLToPath(import.meta.url);
@@ -60,15 +70,3 @@ client.on("interactionCreate", async (interaction) => {
 
 // Botログイン
 client.login(process.env.DISCORD_TOKEN);
-
-// index.js の先頭か末尾に追加してOK
-const http = require("http");
-
-const PORT = process.env.PORT || 3000;
-
-http.createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
-  res.end("Bot is running.\n");
-}).listen(PORT, () => {
-  console.log(`Dummy server is listening on port ${PORT}`);
-});
