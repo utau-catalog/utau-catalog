@@ -4,9 +4,6 @@ import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "url";
-import { keep_alive } from "./keep_alive.js";
-
-keep_alive();
 
 // ESM用 __dirname 互換
 const __filename = fileURLToPath(import.meta.url);
