@@ -110,6 +110,9 @@ export const data = new SlashCommandBuilder()
   );
 
 export async function execute(interaction) {
+  const supportedLangs = ["ja", "ko", "en-US", "zh-TW"];
+  const lang = supportedLangs.includes(interaction.locale) ? interaction.locale : "ja";
+  
   const name = interaction.options.getString("name");
   const newDescription = interaction.options.getString("description");
   const newThumbnailUrl = interaction.options.getAttachment("thumbnail")
@@ -143,7 +146,6 @@ export async function execute(interaction) {
   try {
     // 最初に応答を保留
     await interaction.deferReply({ flags: 0 });
-    const lang = interaction.locale || "ja";
 
     const { sheets, drive } = await setupGoogleSheetsAPI();
 
