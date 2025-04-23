@@ -134,7 +134,8 @@ async function getFileIdsFromFolder(drive, folderId, imageUrls) {
 }
 
 export async function execute(interaction) {
-  const lang = interaction.locale || "ja";
+  const supportedLangs = ["ja", "ko", "en-US", "zh-TW"];
+  const lang = supportedLangs.includes(interaction.locale) ? interaction.locale : "ja";
   const name = interaction.options.getString("name");
 
   try {
