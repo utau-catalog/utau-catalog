@@ -70,3 +70,7 @@ client.on("interactionCreate", async (interaction) => {
 
 // Botログイン
 client.login(process.env.DISCORD_TOKEN);
+
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Unhandled Rejection at:", promise, "reason:", reason);
+});
