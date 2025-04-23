@@ -26,7 +26,8 @@ export const data = new SlashCommandBuilder()
   });
 
 export async function execute(interaction) {
-  const lang = interaction.locale || "ja";
+  const supportedLangs = ["ja", "ko", "en-US", "zh-TW"];
+  const lang = supportedLangs.includes(interaction.locale) ? interaction.locale : "ja";
 
   try {
     // 最初に応答を保留
