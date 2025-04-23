@@ -145,7 +145,7 @@ export async function execute(interaction) {
 
   try {
     // 最初に応答を保留
-    await interaction.deferReply({ flags: 0 });
+    await interaction.deferReply({ flags: 64 });
 
     const { sheets, drive } = await setupGoogleSheetsAPI();
 
