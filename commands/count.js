@@ -1,8 +1,14 @@
-export async function execute(interaction) {
-  await interaction.deferReply(); // ← これを真っ先に実行
+import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 
+export const data = new SlashCommandBuilder()
+  .setName("count")
+  .setDescription("現在の登録数を返します");
+
+export async function execute(interaction) {
+  await interaction.deferReply();
   try {
-    // 以下はすべてその後に処理する
+    
+    // テスト用に固定値でEmbedを返す
     const embed = new EmbedBuilder()
       .setTitle("現在の登録数")
       .setDescription("登録数は **123 件** です（テスト用）")
