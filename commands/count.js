@@ -41,48 +41,55 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const lang = interaction.locale || "ja";
-  await interaction.deferReply();
-  
-  const timeoutMs = 10_000;
 
-  const timeoutPromise = new Promise((resolve) => {
-    setTimeout(() => {
-      interaction.editReply("⚠️ 処理に時間がかかっています。しばらく待ってからもう一度お試しください。");
-      resolve();
-    }, timeoutMs);
+  const replyMessage = await interaction.reply({
+    content: "⌛ 少々お待ちください…",
+    fetchReply: true,
+    ephemeral: false,
   });
 
-  const processCommand = (async () => {
-    try {
-      const { sheets } = await setupGoogleSheetsAPI();
+  let isFinished = false;
   
-      const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
-      const RANGE = "シート1!A:E";
-  
-      const result = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: RANGE,
-      });
-  
-      const rows = result.data.values;
-  
-      if (!rows || rows.length === 0) {
-        await interaction.editReply(errorMessages.noData[lang] || errorMessages.noData.ja);
-        return;
+  setTimeout(async () => {
+    if (!isFinished) {
+      try {
+        await interaction.editReply("⚠️ 処理に時間がかかっています。しばらく待ってからもう一度お試しください。");
+      } catch (e) {
+        console.warn("タイムアウトメッセージの編集失敗：", e);
       }
-  
-      const numberOfRegistrations = rows.length - 1;
-  
-      const embed = new EmbedBuilder()
-        .setTitle(embedTitles[lang] || embedTitles.ja)
-        .setDescription(embedDescriptions[lang]?.(numberOfRegistrations) || embedDescriptions.ja(numberOfRegistrations))
-        .setColor("#54e8e6");
-  
-      await interaction.editReply({ embeds: [embed] });
-    } catch (error) {
-      console.error("エラー:", error);
-      await interaction.editReply(errorMessages.fetchError[lang] || errorMessages.fetchError.ja);
     }
-  })();
-  await Promise.race([processCommand, timeoutPromise]);
+  }, 10_000);
+
+  try {
+    const { sheets } = await setupGoogleSheetsAPI();
+
+    const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
+    const RANGE = "シート1!A:E";
+
+    const result = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: RANGE,
+    });
+
+    const rows = result.data.values;
+
+    if (!rows || rows.length === 0) {
+      await interaction.editReply(errorMessages.noData[lang] || errorMessages.noData.ja);
+      return;
+    }
+
+    const numberOfRegistrations = rows.length - 1;
+
+    const embed = new EmbedBuilder()
+      .setTitle(embedTitles[lang] || embedTitles.ja)
+      .setDescription(embedDescriptions[lang]?.(numberOfRegistrations) || embedDescriptions.ja(numberOfRegistrations))
+      .setColor("#54e8e6");
+
+    isFinished = true;
+    await interaction.editReply({ content: null, embeds: [embed] });
+  } catch (error) {
+    console.error("エラー:", error);
+    isFinished = true;
+    await interaction.editReply(errorMessages.fetchError[lang] || errorMessages.fetchError.ja);
+  }
 }
