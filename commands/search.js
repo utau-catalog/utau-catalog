@@ -144,8 +144,8 @@ export async function execute(interaction) {
 
     // 複数候補 → セレクトメニューを表示
     const options = partialMatches.slice(0, 25).map((row, index) => ({
-      label: row[0].slice(0, 100),
-      description: row[1]?.slice(0, 100) ?? uiMessages.noDescription[lang],
+      label: (row[0] || `No name ${index}`).slice(0, 100),
+      ddescription: (row[1] || uiMessages.noDescription[lang]).slice(0, 100),
       value: index.toString(),
     }));
 
@@ -170,7 +170,8 @@ export async function execute(interaction) {
     
     collector.on("collect", async (i) => {
       if (!interaction.channel) {
-        return await interaction.editReply(uiMessages.noChannel[lang]);
+        await interaction.editReply(uiMessages.noChannel[lang]);
+        return;
       }
       if (i.user.id !== interaction.user.id) {
         return await i.reply({
