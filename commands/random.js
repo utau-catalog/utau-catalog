@@ -31,12 +31,12 @@ export async function execute(interaction) {
 
   try {
     // 最初に応答を保留
-    await interaction.deferReply({ flags: 0 });
+    await interaction.deferReply();
 
     const { sheets } = await setupGoogleSheetsAPI();
 
     const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
-    const RANGE = "シート1!A:E"; // 名前、説明、URL、サムネイル、大きな画像の列を含む範囲
+    const RANGE = "シート1!A:E";
 
     // Googleスプレッドシートからデータを取得
     const result = await sheets.spreadsheets.values.get({
@@ -47,8 +47,9 @@ export async function execute(interaction) {
     const rows = result?.data?.values;
 
     if (!rows || rows.length === 0) {
-      await interaction.editReply(errorMessages.noData[lang]);
-      return;
+      return await interaction.editReply({
+        content: errorMessages.noData[lang] || errorMessages.noData.ja,
+      });
     }
 
     // ヘッダーを除外してデータをシャッフル 2024.12.16追加
@@ -84,16 +85,17 @@ export async function execute(interaction) {
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("エラー:", error);
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({
-        content: "⚠️エラーが発生しました。",
-        flags: 64,
-      });
-    } else {
-      await interaction.editReply({
-        content: `${errorMessages.fetchError[lang]}`,
-        flags: 64,
-      });
+
+    const fallbackMessage = errorMessages.fetchError[lang] || errorMessages.fetchError.ja;
+
+    try {
+      if (!interaction.deferred && !interaction.replied) {
+        await interaction.reply({ content: fallbackMessage, ephemeral: true });
+      } else {
+        await interaction.editReply({ content: fallbackMessage });
+      }
+    } catch (editError) {
+      console.error("エラーメッセージ送信失敗:", editError);
     }
   }
 }
