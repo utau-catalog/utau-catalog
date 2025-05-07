@@ -69,7 +69,7 @@ export async function execute(interaction) {
       .setDescription(embedDescriptions[lang]?.(numberOfRegistrations) || embedDescriptions.ja(numberOfRegistrations))
       .setColor("#54e8e6");
 
-    await interaction.editReply({ content: null, embeds: [embed] });
+    await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("エラー:", error);
     await interaction.editReply(errorMessages.fetchError[lang] || errorMessages.fetchError.ja);
