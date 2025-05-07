@@ -72,6 +72,25 @@ export async function execute(interaction) {
     await interaction.editReply({ embeds: [embed] });
   } catch (error) {
     console.error("エラー:", error);
-    await interaction.editReply(errorMessages.fetchError[lang] || errorMessages.fetchError.ja);
+    
+    // 応答済みでない場合のみエラーメッセージ送信
+    if (!interaction.replied && !interaction.deferred) {
+      try {
+        await interaction.reply({
+          content: errorMessages.fetchError[lang] || errorMessages.fetchError.ja,
+          ephemeral: true,
+        });
+      } catch (replyError) {
+        console.error("エラーメッセージ送信失敗:", replyError);
+      }
+    } else {
+      try {
+        await interaction.editReply({
+          content: errorMessages.fetchError[lang] || errorMessages.fetchError.ja,
+        });
+      } catch (editError) {
+        console.error("エラーメッセージ編集失敗:", editError);
+      }
+    }
   }
 }
