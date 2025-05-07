@@ -55,7 +55,10 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+  if (!command) {
+    console.warn(`⚠️コマンド ${interaction.commandName} が見つかりません`);
+    return;
+  }
 
   try {
     await command.execute(interaction);
