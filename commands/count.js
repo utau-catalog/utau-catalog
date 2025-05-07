@@ -41,26 +41,10 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction) {
   const lang = interaction.locale || "ja";
-
-  const replyMessage = await interaction.reply({
-    content: "⌛ 少々お待ちください…",
-    fetchReply: true,
-    ephemeral: false,
-  });
-
-  let isFinished = false;
   
-  setTimeout(async () => {
-    if (!isFinished) {
-      try {
-        await interaction.editReply("⚠️ 処理に時間がかかっています。しばらく待ってからもう一度お試しください。");
-      } catch (e) {
-        console.warn("タイムアウトメッセージの編集失敗：", e);
-      }
-    }
-  }, 10_000);
-
   try {
+    await interaction.deferReply();
+    
     const { sheets } = await setupGoogleSheetsAPI();
 
     const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
@@ -85,11 +69,9 @@ export async function execute(interaction) {
       .setDescription(embedDescriptions[lang]?.(numberOfRegistrations) || embedDescriptions.ja(numberOfRegistrations))
       .setColor("#54e8e6");
 
-    isFinished = true;
     await interaction.editReply({ content: null, embeds: [embed] });
   } catch (error) {
     console.error("エラー:", error);
-    isFinished = true;
     await interaction.editReply(errorMessages.fetchError[lang] || errorMessages.fetchError.ja);
   }
 }
