@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "url";
 import http from "http";
+import { setupGoogleSheetsAPI } from './auth.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -46,8 +47,9 @@ for (const file of commandFiles) {
 }
 
 // イベント：Bot起動
-client.once("ready", () => {
+client.once("ready", async () => {
   console.log(`✅Botは起きています！ ログイン名: ${client.user.tag}`);
+  await setupGoogleSheetsAPI();  // Google Sheets APIの準備
 });
 
 // イベント：コマンドの処理
