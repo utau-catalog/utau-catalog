@@ -93,11 +93,9 @@ export const data = new SlashCommandBuilder()
   );
 
 // Google Driveの画像を削除
-async function deleteImageFromDrive(driveService, imageUrl) {
+async function deleteImageFromDrive(driveService, fileId) {
   try {
-    const fileId = imageUrl;
-    if (!fileId) return console.log("無効な画像URL:", imageUrl);
-
+    if (!fileId) return console.log("無効な画像URL:", fileId);
     await driveService.files.delete({ fileId });
     console.log(`画像削除成功: ファイルID ${fileId}`);
   } catch (error) {
@@ -113,17 +111,19 @@ async function getFileIdsFromFolder(drive, folderId, imageUrls) {
     const match = imageUrl.match(/\/d\/(.*?)\//);
     if (match && match[1]) {
       const fileId = match[1];
-      const fileMetadata = await drive.files.get({
-        fileId: fileId,
-        fields: "parents", // 親フォルダを確認
-      });
-
-      // 指定されたフォルダにファイルが含まれているか確認
-      if (
-        fileMetadata.data.parents &&
-        fileMetadata.data.parents.includes(folderId)
-      ) {
-        fileIds.push(fileId);
+      try {
+        const fileMetadata = await drive.files.get({
+          fileId,
+          fields: "parents",
+        });
+        if (
+          fileMetadata.data.parents &&
+          fileMetadata.data.parents.includes(folderId)
+        ) {
+          fileIds.push(fileId);
+        }
+      } catch (error) {
+        console.warn(`ファイル情報の取得に失敗: ${fileId}`, error.message);
       }
     } else {
       console.warn(`画像URLの形式が不正です: ${imageUrl}`);
@@ -143,7 +143,6 @@ export async function execute(interaction) {
     await interaction.deferReply({ flags: 64 });
 
     const { sheets, drive } = await setupGoogleSheetsAPI();
-
     const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
     const FOLDER_ID = "1XC1Ny2tsC6mA05dxM6dZ-cpv743E1vh8"; // フォルダーID
 
@@ -198,7 +197,6 @@ export async function execute(interaction) {
     const message = await interaction.editReply({
       embeds: [embed],
       components: [row],
-      flags: 64,
     });
 
     // ボタンの応答を待つ
@@ -222,49 +220,40 @@ export async function execute(interaction) {
           await deleteImageFromDrive(drive, fileId);
         }
         // スプレッドシートの行を削除
-        const requestBody = {
+        await sheets.spreadsheets.batchUpdate({
+          spreadsheetId: SPREADSHEET_ID,
           requests: [
             {
               deleteDimension: {
                 range: {
-                  sheetId: SHEET_ID, // シートIDを明示的に取得
-                  dimension: "ROWS", // 行を削除
-                  startIndex: rowIndex - 1, // 1行削除
-                  endIndex: rowIndex, // 1行削除
+                  sheetId: SHEET_ID,
+                  dimension: "ROWS",
+                  startIndex: rowIndex - 1,
+                  endIndex: rowIndex,
                 },
               },
             },
           ],
-        };
-
-        // スプレッドシートを更新（行削除）
-        await sheets.spreadsheets.batchUpdate({
-          spreadsheetId: SPREADSHEET_ID,
-          requestBody: requestBody,
         });
 
         await i.update({
           content: messages.removed[lang],
           embeds: [],
-          components: [
-            new ActionRowBuilder().addComponents(
-              new ButtonBuilder()
-                .setCustomId("confirm_delete")
-                .setLabel(buttonLabel.delete[lang] || buttonLabel.delete.ja)
-                .setStyle(ButtonStyle.Danger)
-                .setDisabled(true),
-              new ButtonBuilder()
-                .setCustomId("cancel_delete")
-                .setLabel(buttonLabel.cancel[lang] || buttonLabel.cancel.ja)
-                .setStyle(ButtonStyle.Secondary)
-                .setDisabled(true),
-            ),
-          ],
+          components: [],
         });
       } else if (i.customId === "cancel_delete") {
         await i.update({
           content: messages.cancel[lang],
           embeds: [],
+          components: [],
+        });
+      }
+    });
+    collector.on("end", (collected) => {
+      if (collected.size === 0) {
+        interaction.editReply({
+          content: messages.timeout[lang],
+          embeds: [],
           components: [
             new ActionRowBuilder().addComponents(
               new ButtonBuilder()
@@ -282,26 +271,17 @@ export async function execute(interaction) {
         });
       }
     });
-
-    collector.on("end", (collected) => {
-      if (collected.size === 0) {
-        interaction.editReply({
-          content: messages.timeout[lang],
-          embeds: [],
-          components: [],
-        });
-      }
-    });
   } catch (error) {
     console.error("エラー:", error);
+    const errorMessage = messages.errors.fetchError[lang] || messages.errors.fetchError.ja;
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
-        content: "⚠️エラーが発生しました。",
+        content: errorMessage,
         flags: 64,
       });
     } else {
       await interaction.editReply({
-        content: `${errorMessages.fetchError[lang]}`,
+        content: errorMessage,
         flags: 64,
       });
     }
