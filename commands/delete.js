@@ -228,18 +228,20 @@ export async function execute(interaction) {
           // スプレッドシートの行を削除（常に実行）
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
-            requests: [
-              {
-                deleteDimension: {
-                  range: {
-                    sheetId: SHEET_ID,
-                    dimension: "ROWS",
-                    startIndex: rowIndex - 1,
-                    endIndex: rowIndex,
-                  },
-                },
-              },
-            ],
+           requestBody: {
+             requests: [
+               {
+                 deleteDimension: {
+                   range: {
+                     sheetId: SHEET_ID,
+                     dimension: "ROWS",
+                     startIndex: rowIndex - 1,
+                     endIndex: rowIndex,
+                   },
+                 },
+               },
+             ],
+           },
           });
     
           await i.update({
