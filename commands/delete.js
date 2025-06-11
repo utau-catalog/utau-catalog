@@ -208,39 +208,53 @@ export async function execute(interaction) {
 
     collector.on("collect", async (i) => {
       if (i.customId === "confirm_delete") {
-        // フォルダ内で画像ファイルを検索
-        const fileIdsToDelete = await getFileIdsFromFolder(
-          drive,
-          FOLDER_ID,
-          imageUrls,
-        );
-
-        // ファイル削除
-        for (const fileId of fileIdsToDelete) {
-          await deleteImageFromDrive(drive, fileId);
-        }
-        // スプレッドシートの行を削除
-        await sheets.spreadsheets.batchUpdate({
-          spreadsheetId: SPREADSHEET_ID,
-          requests: [
-            {
-              deleteDimension: {
-                range: {
-                  sheetId: SHEET_ID,
-                  dimension: "ROWS",
-                  startIndex: rowIndex - 1,
-                  endIndex: rowIndex,
+        try {
+          // フォルダ内で画像ファイルを検索
+          const fileIdsToDelete = await getFileIdsFromFolder(
+            drive,
+            FOLDER_ID,
+            imageUrls,
+          );
+    
+          // ファイル削除（失敗しても続行）
+          for (const fileId of fileIdsToDelete) {
+            try {
+              await deleteImageFromDrive(drive, fileId);
+            } catch (error) {
+              console.warn(`画像削除失敗（続行）: ${fileId}`, error.message);
+            }
+          }
+    
+          // スプレッドシートの行を削除（常に実行）
+          await sheets.spreadsheets.batchUpdate({
+            spreadsheetId: SPREADSHEET_ID,
+            requests: [
+              {
+                deleteDimension: {
+                  range: {
+                    sheetId: SHEET_ID,
+                    dimension: "ROWS",
+                    startIndex: rowIndex - 1,
+                    endIndex: rowIndex,
+                  },
                 },
               },
-            },
-          ],
-        });
-
-        await i.update({
-          content: messages.removed[lang],
-          embeds: [],
-          components: [],
-        });
+            ],
+          });
+    
+          await i.update({
+            content: messages.removed[lang],
+            embeds: [],
+            components: [],
+          });
+        } catch (error) {
+          console.error("削除処理中のエラー:", error.message);
+          await i.update({
+            content: `⚠️削除処理中にエラーが発生しました。\n${error.message}`,
+            embeds: [],
+            components: [],
+          });
+        }
       } else if (i.customId === "cancel_delete") {
         await i.update({
           content: messages.cancel[lang],
