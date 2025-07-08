@@ -95,18 +95,17 @@ export const data = new SlashCommandBuilder()
 // Google Driveの画像を削除
 async function deleteImageFromDrive(driveService, fileId) {
   try {
-    if (!fileId) return console.log("無効な画像URL:", fileId);
+    if (!fileId) return;
     await driveService.files.delete({ fileId });
-    console.log(`画像削除成功: ファイルID ${fileId}`);
+    console.log(`画像削除成功: ${fileId}`);
   } catch (error) {
-    console.error("画像削除中のエラー:", error);
+    console.warn(`画像削除失敗(続行): ${fieldId}`, error.message);
   }
 }
 
 // フォルダ内でファイルを検索
 async function getFileIdsFromFolder(drive, folderId, imageUrls) {
   const fileIds = [];
-
   for (const imageUrl of imageUrls) {
     const match = imageUrl.match(/\/d\/(.*?)\//);
     if (match && match[1]) {
@@ -129,7 +128,6 @@ async function getFileIdsFromFolder(drive, folderId, imageUrls) {
       console.warn(`画像URLの形式が不正です: ${imageUrl}`);
     }
   }
-
   return fileIds;
 }
 
@@ -138,19 +136,10 @@ export async function execute(interaction) {
   const lang = supportedLangs.includes(interaction.locale) ? interaction.locale : "ja";
   const name = interaction.options.getString("name");
 
-  try {
-    // 最初に応答を保留
-    // await interaction.deferReply({ flags: 64 });
-    
-    const message = await interaction.reply({
-      embeds: [embed],
-      components: [row],
-      ephemeral: true,
-    });
-    
+  try {    
     const { sheets, drive } = await setupGoogleSheetsAPI();
     const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
-    const FOLDER_ID = "1XC1Ny2tsC6mA05dxM6dZ-cpv743E1vh8"; // フォルダーID
+    const FOLDER_ID = "1XC1Ny2tsC6mA05dxM6dZ-cpv743E1vh8";
 
     // スプレッドシートの内容を取得
     const { data } = await sheets.spreadsheets.values.get({
@@ -174,14 +163,17 @@ export async function execute(interaction) {
     }
 
     if (rowIndex === -1) {
-      return interaction.editReply(messages.errors.notFound[lang]);
+      return interaction.reply({
+        content: messages.errors.notFound[lang],
+        ephemeral: true,
+      )};
     }
 
     // シートIDを取得
     const spreadsheetMeta = await sheets.spreadsheets.get({
       spreadsheetId: SPREADSHEET_ID,
     });
-    const SHEET_ID = spreadsheetMeta.data.sheets[0].properties.sheetId; // シートIDを取得
+    const SHEET_ID = spreadsheetMeta.data.sheets[0].properties.sheetId;
 
     // 確認メッセージとボタンを送信
     const embed = new EmbedBuilder()
@@ -200,9 +192,10 @@ export async function execute(interaction) {
         .setStyle(ButtonStyle.Secondary),
     );
 
-    const message = await interaction.editReply({
+    const message = await interaction.reply({
       embeds: [embed],
       components: [row],
+      ephemeral: true,
     });
 
     // ボタンの応答を待つ
@@ -332,12 +325,12 @@ export async function execute(interaction) {
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
         content: errorMessage,
-        flags: 64,
+        ephemeral: true,
       });
     } else {
       await interaction.editReply({
         content: errorMessage,
-        flags: 64,
+        ephemeral: true,
       });
     }
   }
