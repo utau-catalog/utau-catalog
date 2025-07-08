@@ -198,7 +198,7 @@ export async function execute(interaction) {
       ephemeral: true,
     });
     const message = await interaction.fetchReply();
-    
+    const filter = (i) => i.user.id === interaction.user.id;
     const collector = message.createMessageComponentCollector({
       filter,
       time: 15000,
