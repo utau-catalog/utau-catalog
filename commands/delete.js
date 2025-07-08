@@ -99,7 +99,7 @@ async function deleteImageFromDrive(driveService, fileId) {
     await driveService.files.delete({ fileId });
     console.log(`画像削除成功: ${fileId}`);
   } catch (error) {
-    console.warn(`画像削除失敗(続行): ${fieldId}`, error.message);
+    console.warn(`画像削除失敗(続行): ${fileId}`, error.message);
   }
 }
 
@@ -166,7 +166,7 @@ export async function execute(interaction) {
       return interaction.reply({
         content: messages.errors.notFound[lang],
         ephemeral: true,
-      )};
+      });
     }
 
     // シートIDを取得
@@ -192,17 +192,16 @@ export async function execute(interaction) {
         .setStyle(ButtonStyle.Secondary),
     );
 
-    const message = await interaction.reply({
+    await interaction.reply({
       embeds: [embed],
       components: [row],
       ephemeral: true,
     });
-
-    // ボタンの応答を待つ
-    const filter = (i) => i.user.id === interaction.user.id;
+    const message = await interaction.fetchReply();
+    
     const collector = message.createMessageComponentCollector({
       filter,
-      time: 15000, // 15秒間待機
+      time: 15000,
     });
 
     collector.on("collect", async (i) => {
