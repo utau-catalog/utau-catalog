@@ -228,8 +228,8 @@ export async function execute(interaction) {
           // スプレッドシートの行を削除（常に実行）
           await sheets.spreadsheets.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
-           requestBody: {
-             requests: [
+            requestBody: {
+              requests: [
                {
                  deleteDimension: {
                    range: {
@@ -243,26 +243,59 @@ export async function execute(interaction) {
              ],
            },
           });
-    
-          await i.update({
-            content: messages.removed[lang],
-            embeds: [],
-            components: [],
-          });
+          // メッセージ更新（エラー回避のため replied チェック）
+          try {
+            if (i.replied || i.deferred) {
+              await i.update({
+                content: messages.removed[lang],
+                ephemeral: true,
+              });
+            } else {
+              await i.update({
+                content: messages.removed[lang],
+                embeds: [],
+                components: [],
+              });
+            }
+          } catch (err) {
+            console.error("メッセージ更新エラー:", err);
+          }
         } catch (error) {
           console.error("削除処理中のエラー:", error.message);
-          await i.update({
-            content: `⚠️削除処理中にエラーが発生しました。\n${error.message}`,
-            embeds: [],
-            components: [],
-          });
+          try {
+            if (i.replied || i.deferred) {
+              await i.followUp({
+                content: `⚠️削除処理中にエラーが発生しました。\n${error.message}`,
+                ephemeral: true,
+              });
+            } else {
+              await i.update({
+                content: `⚠️削除処理中にエラーが発生しました。\n${error.message}`,
+                embeds: [],
+                components: [],
+              });
+            }
+          } catch (e) {
+            console.error("エラーメッセージ送信失敗:", e);
+          }
         }
       } else if (i.customId === "cancel_delete") {
-        await i.update({
-          content: messages.cancel[lang],
-          embeds: [],
-          components: [],
-        });
+        try {
+          if (i.replied || i.deferred) {
+            await i.followUp({
+              content: messages.cancel[lang],
+              ephemeral: true,
+            });
+          } else {
+            await i.update({
+              content: messages.cancel[lang],
+              embeds: [],
+              components: [],
+            });
+          }
+        } catch (e) {
+          console.error("キャンセルメッセージ送信失敗:", e);
+        }
       }
     });
     collector.on("end", (collected) => {
