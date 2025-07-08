@@ -163,16 +163,11 @@ export async function execute(interaction) {
     }
 
     if (rowIndex === -1) {
-      return interaction.reply({
-        content: messages.errors.notFound[lang],
-        ephemeral: true,
-      });
+      return await interaction.reply({ content: messages.errors.notFound[lang], ephemeral: true });
     }
 
     // シートIDを取得
-    const spreadsheetMeta = await sheets.spreadsheets.get({
-      spreadsheetId: SPREADSHEET_ID,
-    });
+    const spreadsheetMeta = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
     const SHEET_ID = spreadsheetMeta.data.sheets[0].properties.sheetId;
 
     // 確認メッセージとボタンを送信
@@ -216,11 +211,7 @@ export async function execute(interaction) {
     
           // ファイル削除（失敗しても続行）
           for (const fileId of fileIdsToDelete) {
-            try {
               await deleteImageFromDrive(drive, fileId);
-            } catch (error) {
-              console.warn(`画像削除失敗（続行）: ${fileId}`, error.message);
-            }
           }
     
           // スプレッドシートの行を削除（常に実行）
@@ -241,40 +232,25 @@ export async function execute(interaction) {
              ],
            },
           });
-          // メッセージ更新（エラー回避のため replied チェック）
-          try {
-            if (i.replied || i.deferred) {
-              await i.update({
-                content: messages.removed[lang],
-                ephemeral: true,
-              });
-            } else {
-              await i.update({
-                content: messages.removed[lang],
-                embeds: [],
-                components: [],
-              });
-            }
-          } catch (err) {
-            console.error("メッセージ更新エラー:", err);
-          }
+          // ✅ 必ず応答する
+          await i.update({
+            content: messages.removed[lang],
+            embeds: [],
+            components: [],
+          });      
         } catch (error) {
-          console.error("削除処理中のエラー:", error.message);
-          try {
-            if (i.replied || i.deferred) {
-              await i.followUp({
-                content: `⚠️削除処理中にエラーが発生しました。\n${error.message}`,
-                ephemeral: true,
-              });
-            } else {
-              await i.update({
-                content: `⚠️削除処理中にエラーが発生しました。\n${error.message}`,
-                embeds: [],
-                components: [],
-              });
-            }
-          } catch (e) {
-            console.error("エラーメッセージ送信失敗:", e);
+          console.error("削除エラー:", error);
+          if (i.replied || i.deferred) {
+            await i.followUp({
+              content: messages.errors.fetchError[lang],
+              ephemeral: true
+            });
+          } else {
+            await i.update({
+              content: messages.errors.fetchError[lang],
+              components: [],
+              embeds: []
+            });
           }
         }
       } else if (i.customId === "cancel_delete") {
@@ -287,18 +263,18 @@ export async function execute(interaction) {
           } else {
             await i.update({
               content: messages.cancel[lang],
-              embeds: [],
               components: [],
+              embeds: [],
             });
           }
-        } catch (e) {
-          console.error("キャンセルメッセージ送信失敗:", e);
+        } catch (error) {
+          console.error("キャンセル応答失敗:", error);
         }
       }
     });
     collector.on("end", (collected) => {
       if (collected.size === 0) {
-        interaction.editReply({
+        await interaction.editReply({
           content: messages.timeout[lang],
           embeds: [],
           components: [
