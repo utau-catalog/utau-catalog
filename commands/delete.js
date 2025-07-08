@@ -140,8 +140,14 @@ export async function execute(interaction) {
 
   try {
     // 最初に応答を保留
-    await interaction.deferReply({ flags: 64 });
-
+    // await interaction.deferReply({ flags: 64 });
+    
+    const message = await interaction.reply({
+      embeds: [embed],
+      components: [row],
+      ephemeral: true,
+    });
+    
     const { sheets, drive } = await setupGoogleSheetsAPI();
     const SPREADSHEET_ID = "1A4kmhZo9ZGlr4IZZiPSnUoo7p9FnSH9ujn0Bij7euY4";
     const FOLDER_ID = "1XC1Ny2tsC6mA05dxM6dZ-cpv743E1vh8"; // フォルダーID
