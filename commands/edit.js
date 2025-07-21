@@ -22,6 +22,16 @@ async function deleteImageFromDrive(driveService, imageUrl) {
   }
 }
 
+// 画像アップロード関数をtry-catchで安全に呼び出す
+async function safeUploadImageToDrive(drive, imageUrl, folderId, fileName) {
+  try {
+    return await uploadImageToDrive(drive, imageUrl, folderId, fileName);
+  } catch (error) {
+    console.error(`画像アップロード失敗 (${fileName}):`, error);
+    return null; // 失敗時はnullを返す
+  }
+}
+
 const messages = {
   success: {
     ja: "✅キャラクター情報を更新しました。",
@@ -187,26 +197,30 @@ export async function execute(interaction) {
 
     // サムネイル画像をアップロード（添付がある場合のみ実行）
     if (newThumbnailUrl) {
-      thumbnailDriveUrl = await uploadImageToDrive(
+      const uploadedUrl = await safeUploadImageToDrive(
         drive,
         newThumbnailUrl,
         folderId,
-        `${name}-thumb`,
+        `${name}-thumb`
       );
-
-      if (oldThumbnailUrl) await deleteImageFromDrive(drive, oldThumbnailUrl);
+      if (uploadedUrl) {
+        thumbnailDriveUrl = uploadedUrl;
+        if (oldThumbnailUrl) await deleteImageFromDrive(drive, oldThumbnailUrl);
+      }
     }
 
-    // 大きな画像をアップロード（添付がある場合のみ実行）
+    // メイン画像アップロード
     if (newMainImageUrl) {
-      mainImageDriveUrl = await uploadImageToDrive(
+      const uploadedUrl = await safeUploadImageToDrive(
         drive,
         newMainImageUrl,
         folderId,
-        `${name}-large`,
+        `${name}-large`
       );
-
-      if (oldMainImageUrl) await deleteImageFromDrive(drive, oldMainImageUrl);
+      if (uploadedUrl) {
+        mainImageDriveUrl = uploadedUrl;
+        if (oldMainImageUrl) await deleteImageFromDrive(drive, oldMainImageUrl);
+      }
     }
 
     // スプレッドシートのデータを更新
