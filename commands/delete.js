@@ -94,8 +94,8 @@ export const data = new SlashCommandBuilder()
 
 // Google Driveの画像を削除
 async function deleteImageFromDrive(driveService, fileId) {
+  if (!fileId) return;
   try {
-    if (!fileId) return;
     await driveService.files.delete({ fileId });
     console.log(`画像削除成功: ${fileId}`);
   } catch (error) {
@@ -108,24 +108,19 @@ async function getFileIdsFromFolder(drive, folderId, imageUrls) {
   const fileIds = [];
   for (const imageUrl of imageUrls) {
     const match = imageUrl.match(/\/d\/(.*?)\//);
-    if (match && match[1]) {
-      const fileId = match[1];
-      try {
-        const fileMetadata = await drive.files.get({
-          fileId,
-          fields: "parents",
-        });
-        if (
-          fileMetadata.data.parents &&
-          fileMetadata.data.parents.includes(folderId)
-        ) {
+    if (!match?.[1]) {
+      console.warn(`画像URL形式エラー: ${url}`);
+      continue;
+    }
+    
+    const fileId = match[1];
+    try {
+      const fileMetadata = await drive.files.get({ fileId, fields: "parents" });
+      if (fileMetadata.data.parents?.includes(folderId)) {
           fileIds.push(fileId);
-        }
-      } catch (error) {
-        console.warn(`ファイル情報の取得に失敗: ${fileId}`, error.message);
       }
-    } else {
-      console.warn(`画像URLの形式が不正です: ${imageUrl}`);
+    } catch (error) {
+      console.warn(`ファイル情報の取得に失敗: ${fileId}`, error.message);
     }
   }
   return fileIds;
@@ -163,7 +158,10 @@ export async function execute(interaction) {
     }
 
     if (rowIndex === -1) {
-      return await interaction.reply({ content: messages.errors.notFound[lang], ephemeral: true });
+      return await interaction.reply({
+        content: messages.errors.notFound[lang],
+        ephemeral: true,
+      });
     }
 
     // シートIDを取得
@@ -179,11 +177,11 @@ export async function execute(interaction) {
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("confirm_delete")
-        .setLabel(buttonLabel.delete[lang] || buttonLabel.delete.ja)
+        .setLabel(buttonLabel.delete[lang])
         .setStyle(ButtonStyle.Danger),
       new ButtonBuilder()
         .setCustomId("cancel_delete")
-        .setLabel(buttonLabel.cancel[lang] || buttonLabel.cancel.ja)
+        .setLabel(buttonLabel.cancel[lang])
         .setStyle(ButtonStyle.Secondary),
     );
 
@@ -192,6 +190,7 @@ export async function execute(interaction) {
       components: [row],
       ephemeral: true,
     });
+    
     const message = await interaction.fetchReply();
     const filter = (i) => i.user.id === interaction.user.id;
     const collector = message.createMessageComponentCollector({
@@ -247,13 +246,15 @@ export async function execute(interaction) {
             });
           } else {
             await i.update({
-              content: messages.errors.fetchError[lang],
+              content: mesages.errors.fetchError[lang],
               components: [],
               embeds: []
             });
           }
         }
-      } else if (i.customId === "cancel_delete") {
+      }
+      
+      if (i.customId === "cancel_delete") {
         try {
           if (i.replied || i.deferred) {
             await i.followUp({
@@ -281,12 +282,12 @@ export async function execute(interaction) {
             new ActionRowBuilder().addComponents(
               new ButtonBuilder()
                 .setCustomId("confirm_delete")
-                .setLabel(buttonLabel.delete[lang] || buttonLabel.delete.ja)
+                .setLabel(buttonLabel.delete[lang])
                 .setStyle(ButtonStyle.Danger)
                 .setDisabled(true),
               new ButtonBuilder()
                 .setCustomId("cancel_delete")
-                .setLabel(buttonLabel.cancel[lang] || buttonLabel.cancel.ja)
+                .setLabel(buttonLabel.cancel[lang])
                 .setStyle(ButtonStyle.Secondary)
                 .setDisabled(true),
             ),
@@ -296,14 +297,14 @@ export async function execute(interaction) {
     });
   } catch (error) {
     console.error("エラー:", error);
-    const errorMessage = messages.errors.fetchError[lang] || messages.errors.fetchError.ja;
+    const errorMessage = messages.errors.fetchError[lang];
     if (interaction.replied || interaction.deferred) {
       await interaction.followUp({
         content: errorMessage,
         ephemeral: true,
       });
     } else {
-      await interaction.editReply({
+      await interaction.Reply({
         content: errorMessage,
         ephemeral: true,
       });
